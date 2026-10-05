@@ -95,7 +95,7 @@ export default async function WarPage({
           <WarAttackLog war={war} players={players} />
         </TabsContent>
         <TabsContent value="bases">
-          <WarBases war={war} score={score} />
+          <WarBases war={war} players={players} score={score} />
         </TabsContent>
       </Tabs>
     </PageShell>

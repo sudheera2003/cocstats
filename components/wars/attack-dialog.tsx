@@ -67,12 +67,14 @@ function AttackForm({
   war,
   players,
   playerId,
+  targetPosition,
   attack,
   onDone,
 }: {
   war: WarDTO
   players: PlayerDTO[]
   playerId?: string
+  targetPosition?: number
   attack?: AttackDTO
   onDone: () => void
 }) {
@@ -113,11 +115,17 @@ function AttackForm({
     )
   )
   const [target, setTarget] = useState(
-    attack ? String(attack.targetPosition) : ""
+    attack
+      ? String(attack.targetPosition)
+      : targetPosition !== undefined
+        ? String(targetPosition)
+        : ""
   )
-  const [targetTh, setTargetTh] = useState(
-    attack?.targetTownHall != null ? String(attack.targetTownHall) : ""
-  )
+  const [targetTh, setTargetTh] = useState(() => {
+    if (attack) return attack.targetTownHall != null ? String(attack.targetTownHall) : ""
+    const known = targetPosition !== undefined ? baseTownHall(targetPosition) : undefined
+    return known != null ? String(known) : ""
+  })
   const { pending, errors, submit, clearError } = useFormAction()
 
   // Every attack on the same enemy base must agree on its Town Hall.
@@ -450,6 +458,7 @@ export function AttackDialog({
   open,
   onOpenChange,
   playerId,
+  targetPosition,
   attack,
 }: {
   war: WarDTO
@@ -457,6 +466,7 @@ export function AttackDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   playerId?: string
+  targetPosition?: number
   attack?: AttackDTO
 }) {
   const player = players.find((p) => p.id === (attack?.playerId ?? playerId))
@@ -481,13 +491,16 @@ export function AttackDialog({
           <DialogDescription>
             {attack
               ? `Attack ${attack.order} by ${player?.name ?? "this player"} against ${war.opponent}.`
-              : `Record a hit against ${war.opponent}.`}
+              : targetPosition !== undefined
+                ? `Record a hit on base #${targetPosition} against ${war.opponent}.`
+                : `Record a hit against ${war.opponent}.`}
           </DialogDescription>
         </DialogHeader>
         <AttackForm
           war={war}
           players={players}
           playerId={playerId}
+          targetPosition={targetPosition}
           attack={attack}
           onDone={() => onOpenChange(false)}
         />

@@ -2,6 +2,7 @@
 
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 
+import { ChartSkeleton } from "@/components/skeletons"
 import {
   ChartContainer,
   ChartLegend,
@@ -10,6 +11,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { useIsClient } from "@/hooks/use-is-client"
 import { formatDate } from "@/lib/format"
 
 export interface TrendPoint {
@@ -28,7 +30,10 @@ const config = {
 } satisfies ChartConfig
 
 export function TrendChart({ data }: { data: TrendPoint[] }) {
+  const isClient = useIsClient()
   const byId = new Map(data.map((point) => [point.id, point]))
+
+  if (!isClient) return <ChartSkeleton className="h-64" />
 
   return (
     <ChartContainer config={config} className="aspect-auto h-64 w-full">

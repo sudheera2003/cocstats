@@ -2,12 +2,14 @@
 
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
+import { ChartSkeleton } from "@/components/skeletons"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { useIsClient } from "@/hooks/use-is-client"
 
 const config = {
   count: { label: "Attacks", color: "var(--chart-1)" },
@@ -19,10 +21,13 @@ export function StarsChart({
 }: {
   distribution: [number, number, number, number]
 }) {
+  const isClient = useIsClient()
   const data = distribution.map((count, stars) => ({
     stars: `${stars} ${stars === 1 ? "star" : "stars"}`,
     count,
   }))
+
+  if (!isClient) return <ChartSkeleton />
 
   return (
     <ChartContainer config={config} className="aspect-auto h-56 w-full">
