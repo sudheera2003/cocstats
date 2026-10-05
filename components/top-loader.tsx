@@ -3,6 +3,9 @@
 import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react"
 
+/** Safety net in case a skeleton is somehow left in the DOM forever. */
+const MAX_WAIT_MS = 15000
+
 function isModifiedClick(event: MouseEvent) {
   return (
     event.button !== 0 ||
@@ -13,12 +16,20 @@ function isModifiedClick(event: MouseEvent) {
   )
 }
 
+function hasSkeletons() {
+  return document.querySelector('[data-slot="skeleton"]') !== null
+}
+
 function TopLoaderInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const waitRef = useRef<{
+    observer: MutationObserver
+    timeout: ReturnType<typeof setTimeout>
+  } | null>(null)
   const currentKey = `${pathname}?${searchParams.toString()}`
 
   // Mirrors `currentKey` on every render, so the click listener (added once)
@@ -35,6 +46,13 @@ function TopLoaderInner() {
 
   useEffect(() => {
     function start() {
+      // A new navigation started while we were still waiting out the last
+      // one's skeletons (e.g. clicking another link mid-load) — drop that wait.
+      if (waitRef.current) {
+        waitRef.current.observer.disconnect()
+        clearTimeout(waitRef.current.timeout)
+        waitRef.current = null
+      }
       if (intervalRef.current) return
       setVisible(true)
       setProgress((p) => (p > 0 ? p : 8))
@@ -76,25 +94,59 @@ function TopLoaderInner() {
     }
   }, [])
 
+  // The route commits (this fires) as soon as a segment's `loading.tsx`
+  // fallback is ready — well before the real data behind it streams in. Keep
+  // the bar going until every skeleton actually clears out of the page.
   useEffect(() => {
     if (committedKeyRef.current === currentKey) return
     committedKeyRef.current = currentKey
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
+    function finish() {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      setProgress(100)
+      setTimeout(() => {
+        setVisible(false)
+        setProgress(0)
+      }, 200)
     }
-    setProgress(100)
+
+    if (!hasSkeletons()) {
+      finish()
+      return
+    }
+
+    const observer = new MutationObserver(() => {
+      if (!hasSkeletons()) {
+        clearTimeout(timeout)
+        waitRef.current = null
+        finish()
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
     const timeout = setTimeout(() => {
-      setVisible(false)
-      setProgress(0)
-    }, 200)
-    return () => clearTimeout(timeout)
+      observer.disconnect()
+      waitRef.current = null
+      finish()
+    }, MAX_WAIT_MS)
+    waitRef.current = { observer, timeout }
+
+    return () => {
+      observer.disconnect()
+      clearTimeout(timeout)
+      waitRef.current = null
+    }
   }, [currentKey])
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
+      if (waitRef.current) {
+        waitRef.current.observer.disconnect()
+        clearTimeout(waitRef.current.timeout)
+      }
     }
   }, [])
 
