@@ -15,6 +15,7 @@ import { SeasonPlayersTable } from "@/components/cwl/season-players-table"
 import { PageShell } from "@/components/page-shell"
 import { BreakdownTable } from "@/components/players/breakdown-table"
 import { StatCard } from "@/components/stat-card"
+import { WarLogNotice } from "@/components/wars/war-log-notice"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -33,7 +34,7 @@ import {
 import { AWARD_WEIGHTS, computeAwards } from "@/lib/awards"
 import { CWL_DAYS, CWL_GROUP_SIZE, CWL_WIN_BONUS_STARS } from "@/lib/constants"
 import { computeSeasonPlayers, computeSeasonStandings } from "@/lib/cwl"
-import { getPlayers, getSeason, getWars } from "@/lib/data"
+import { getClan, getPlayers, getSeason, getWars } from "@/lib/data"
 import {
   formatNumber,
   formatPercent,
@@ -63,22 +64,24 @@ export default async function CwlPage() {
   ])
 
   if (!season) {
+    const clan = await getClan()
     return (
       <PageShell
         crumbs={[{ label: "CWL" }]}
         title="Clan War League"
         description="Each season is seven daily wars against seven different clans."
       >
+        {!clan.warLogPublic && <WarLogNotice />}
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <TrophyIcon />
             </EmptyMedia>
-            <EmptyTitle>No CWL season right now</EmptyTitle>
+            <EmptyTitle>No CWL season to show</EmptyTitle>
             <EmptyDescription>
-              The clan isn&apos;t in a Clan War League group at the moment. The
-              season shows up here as soon as the clan signs up, and stays until
-              the game clears it.
+              {clan.warLogPublic
+                ? "The clan isn't in a Clan War League group at the moment. The season shows up here as soon as the clan signs up, and stays until the game clears it."
+                : "Once the war log is public, the season shows up here whenever the clan is in a Clan War League group."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
