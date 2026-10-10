@@ -1,0 +1,9 @@
+/node_modules
+/dist
+
+# env files (the API token lives here; never commit it)
+.env*
+!.env.example
+
+npm-debug.log*
+.DS_Store

@@ -1,0 +1,18 @@
+# Render Blueprint for the backend. Create the service from this file (New ->
+# Blueprint), or copy the settings into a Web Service by hand.
+services:
+  - type: web
+    name: cocstats-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    # TypeScript is a dev dependency, so the build needs those installed too.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # Fill these in on the dashboard; they are never stored in the repo.
+      - key: CLAN_TAG
+        sync: false
+      - key: COC_API_TOKEN
+        sync: false
